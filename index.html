@@ -91,18 +91,26 @@
         BadgeCheck,
         Banknote,
         Bell,
+        Building2,
+        Calculator,
         CheckCircle2,
         CircleDollarSign,
         ClipboardCheck,
         FileCheck2,
+        FileText,
         Gauge,
         Layers3,
         LockKeyhole,
+        PlayCircle,
         Search,
+        Settings2,
         ShieldCheck,
         SlidersHorizontal,
         Sparkles,
         TrendingUp,
+        UploadCloud,
+        UserCog,
+        UserPlus,
         UsersRound,
         WalletCards,
       } from 'https://esm.sh/lucide-react@0.468.0?deps=react@18.3.1';
@@ -118,7 +126,7 @@
           bg: '#3F8C7A',
           accent: '#F6C85F',
           icon: Banknote,
-          amount: '₹84.2 Cr',
+          amount: 'Rs.84.2 Cr',
           metric: 'sanction-ready pipeline',
           queue: ['412 applications', '97% KYC match', '23 policy exceptions'],
           chart: [44, 58, 52, 70, 78, 74, 88],
@@ -159,7 +167,7 @@
           icon: ShieldCheck,
           amount: '2.8%',
           metric: 'portfolio at risk',
-          queue: ['146 SMA-1 loans', '38 legal notices', '₹5.7 Cr cured'],
+          queue: ['146 SMA-1 loans', '38 legal notices', 'Rs.5.7 Cr cured'],
           chart: [31, 36, 42, 39, 47, 51, 46],
         },
       ];
@@ -168,7 +176,63 @@
         const [activeIndex, setActiveIndex] = useState(0);
         const [isAnimating, setIsAnimating] = useState(false);
         const [isMobile, setIsMobile] = useState(false);
+        const [applications, setApplications] = useState([
+          { borrower: 'Aarav Textiles', product: 'Working capital', amount: 2400000, status: 'Underwriting', score: 742 },
+          { borrower: 'Nexa Mobility', product: 'Vehicle loan', amount: 875000, status: 'Approved', score: 718 },
+          { borrower: 'Prime Agro', product: 'Equipment finance', amount: 1625000, status: 'KYC Review', score: 681 },
+        ]);
+        const [borrower, setBorrower] = useState('IHB Manufacturing');
+        const [product, setProduct] = useState('Term loan');
+        const [loanAmount, setLoanAmount] = useState(1250000);
+        const [rate, setRate] = useState(12.5);
+        const [months, setMonths] = useState(36);
+        const [selectedAnalytics, setSelectedAnalytics] = useState(['Eligibility', 'EMI', 'IRACP']);
         const active = WORKSTREAMS[activeIndex];
+
+        const monthlyRate = rate / 12 / 100;
+        const emi =
+          monthlyRate === 0
+            ? loanAmount / months
+            : (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+
+        const addApplication = () => {
+          setApplications((current) => [
+            {
+              borrower: borrower || 'New Borrower',
+              product: product || 'Loan product',
+              amount: Number(loanAmount) || 0,
+              status: 'New Application',
+              score: 700 + (current.length % 4) * 11,
+            },
+            ...current,
+          ]);
+        };
+
+        const toggleAnalytics = (name) => {
+          setSelectedAnalytics((current) =>
+            current.includes(name) ? current.filter((item) => item !== name) : [...current, name],
+          );
+        };
+
+        const generateWorkpaper = () => {
+          const lines = [
+            'LoanOps Cloud - Loan Workpaper',
+            `Borrower: ${borrower}`,
+            `Product: ${product}`,
+            `Loan Amount: Rs.${Number(loanAmount).toLocaleString('en-IN')}`,
+            `Rate: ${rate}%`,
+            `Tenure: ${months} months`,
+            `Estimated EMI: Rs.${Math.round(emi).toLocaleString('en-IN')}`,
+            `Analytics: ${selectedAnalytics.join(', ')}`,
+          ];
+          const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = 'loanops-workpaper.txt';
+          link.click();
+          URL.revokeObjectURL(url);
+        };
 
         useEffect(() => {
           const updateMobile = () => setIsMobile(window.innerWidth < 640);
@@ -301,6 +365,25 @@
             ),
           ),
           h(WorkflowBand, { active }),
+          h(OperationsConsole, {
+            applications,
+            borrower,
+            setBorrower,
+            product,
+            setProduct,
+            loanAmount,
+            setLoanAmount,
+            rate,
+            setRate,
+            months,
+            setMonths,
+            emi,
+            addApplication,
+            selectedAnalytics,
+            toggleAnalytics,
+            generateWorkpaper,
+            active,
+          }),
         );
       }
 
@@ -392,7 +475,7 @@
                       'div',
                       null,
                       h('p', { className: 'text-xs font-semibold uppercase text-white/55', style: { letterSpacing: '0.12em' } }, 'Portfolio velocity'),
-                      h('p', { className: 'text-xl font-bold' }, '₹312.6 Cr monitored'),
+                      h('p', { className: 'text-xl font-bold' }, 'Rs.312.6 Cr monitored'),
                     ),
                     h(Gauge, { className: 'h-6 w-6', style: { color: stream.accent } }),
                   ),
@@ -564,7 +647,224 @@
         );
       }
 
+      function OperationsConsole({
+        applications,
+        borrower,
+        setBorrower,
+        product,
+        setProduct,
+        loanAmount,
+        setLoanAmount,
+        rate,
+        setRate,
+        months,
+        setMonths,
+        emi,
+        addApplication,
+        selectedAnalytics,
+        toggleAnalytics,
+        generateWorkpaper,
+        active,
+      }) {
+        const analytics = ['Eligibility', 'EMI', 'IRACP', 'ECL', 'Collections', 'Audit Trail'];
+        const totalBook = applications.reduce((sum, item) => sum + item.amount, 0);
+
+        return h(
+          'section',
+          { className: 'bg-white px-4 py-10 text-slate-950 sm:px-8 lg:px-20' },
+          h(
+            'div',
+            { className: 'mx-auto max-w-7xl' },
+            h(
+              'div',
+              { className: 'mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end' },
+              h(
+                'div',
+                null,
+                h('p', { className: 'mb-3 text-xs font-bold uppercase text-slate-500', style: { letterSpacing: '0.18em' } }, 'Functional loan management'),
+                h('h2', { className: 'max-w-3xl text-3xl font-bold leading-tight sm:text-5xl' }, 'Operate the full loan cycle from one browser page.'),
+              ),
+              h(
+                'div',
+                { className: 'grid grid-cols-3 gap-2 text-center' },
+                h(StatPill, { label: 'Applications', value: applications.length }),
+                h(StatPill, { label: 'Book', value: `Rs.${(totalBook / 100000).toFixed(1)}L` }),
+                h(StatPill, { label: 'EMI', value: `Rs.${Math.round(emi).toLocaleString('en-IN')}` }),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'grid gap-4 lg:grid-cols-[0.95fr_1.05fr]' },
+              h(
+                'div',
+                { className: 'border border-slate-200 p-5' },
+                h(SectionTitle, { icon: UserPlus, title: 'Borrower and loan intake', text: 'Create a new application and compute repayment terms.' }),
+                h(
+                  'div',
+                  { className: 'mt-5 grid gap-3 sm:grid-cols-2' },
+                  h(Field, { label: 'Borrower', value: borrower, onChange: setBorrower }),
+                  h(Field, { label: 'Product', value: product, onChange: setProduct }),
+                  h(NumberField, { label: 'Amount', value: loanAmount, onChange: setLoanAmount }),
+                  h(NumberField, { label: 'Rate %', value: rate, onChange: setRate, step: '0.1' }),
+                  h(NumberField, { label: 'Tenure months', value: months, onChange: setMonths }),
+                  h(
+                    'div',
+                    { className: 'border border-slate-200 bg-slate-50 px-4 py-3' },
+                    h('p', { className: 'text-xs font-bold uppercase text-slate-500' }, 'Estimated EMI'),
+                    h('p', { className: 'mt-2 text-2xl font-bold' }, `Rs.${Math.round(emi).toLocaleString('en-IN')}`),
+                  ),
+                ),
+                h(
+                  'button',
+                  { onClick: addApplication, className: 'mt-4 flex w-full items-center justify-center gap-2 bg-slate-950 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800' },
+                  h(UserPlus, { className: 'h-4 w-4' }),
+                  'Add application',
+                ),
+              ),
+              h(
+                'div',
+                { className: 'border border-slate-200 p-5' },
+                h(SectionTitle, { icon: Layers3, title: 'Live loan pipeline', text: 'Track borrower, product, exposure, score, and status.' }),
+                h(
+                  'div',
+                  { className: 'mt-5 overflow-x-auto' },
+                  h(
+                    'table',
+                    { className: 'w-full min-w-[620px] border-collapse text-left text-sm' },
+                    h(
+                      'thead',
+                      { className: 'bg-slate-950 text-white' },
+                      h('tr', null, ['Borrower', 'Product', 'Amount', 'Score', 'Status'].map((head) => h('th', { key: head, className: 'px-4 py-3 font-semibold' }, head))),
+                    ),
+                    h(
+                      'tbody',
+                      null,
+                      applications.map((item) =>
+                        h(
+                          'tr',
+                          { key: `${item.borrower}-${item.amount}`, className: 'border-b border-slate-200' },
+                          h('td', { className: 'px-4 py-3 font-bold' }, item.borrower),
+                          h('td', { className: 'px-4 py-3 text-slate-600' }, item.product),
+                          h('td', { className: 'px-4 py-3' }, `Rs.${item.amount.toLocaleString('en-IN')}`),
+                          h('td', { className: 'px-4 py-3' }, item.score),
+                          h('td', { className: 'px-4 py-3' }, h('span', { className: 'bg-slate-100 px-3 py-1 text-xs font-bold' }, item.status)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            h(
+              'div',
+              { className: 'mt-4 grid gap-4 lg:grid-cols-4' },
+              h(WorkflowCard, { icon: Building2, title: 'Organization setup', text: 'Tenant, branch, product, and approval hierarchy readiness.', items: ['Tenant active', 'Branch mapped', 'Roles assigned'], color: active.accent }),
+              h(WorkflowCard, { icon: UploadCloud, title: 'Upload and mapping', text: 'Import loan books, bank files, KYC data, and map required columns.', items: ['CSV/XLSX source', 'Column mapping', 'Validation rules'], color: active.accent }),
+              h(
+                'div',
+                { className: 'border border-slate-200 p-5' },
+                h(SectionTitle, { icon: Settings2, title: 'Analytics selection', text: 'Choose tests before execution.' }),
+                h(
+                  'div',
+                  { className: 'mt-4 flex flex-wrap gap-2' },
+                  analytics.map((name) =>
+                    h(
+                      'button',
+                      {
+                        key: name,
+                        onClick: () => toggleAnalytics(name),
+                        className: `px-3 py-2 text-xs font-bold ${selectedAnalytics.includes(name) ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-700'}`,
+                      },
+                      name,
+                    ),
+                  ),
+                ),
+                h(
+                  'button',
+                  { className: 'mt-4 flex w-full items-center justify-center gap-2 border border-slate-950 px-4 py-3 text-sm font-bold', onClick: generateWorkpaper },
+                  h(PlayCircle, { className: 'h-4 w-4' }),
+                  'Execute and download workpaper',
+                ),
+              ),
+              h(WorkflowCard, { icon: UserCog, title: 'User management', text: 'Maker-checker access, reviewer roles, and audit trail ownership.', items: ['Admin', 'Credit maker', 'Audit reviewer'], color: active.accent }),
+            ),
+            h(
+              'div',
+              { className: 'mt-4 border border-slate-200 bg-slate-50 p-5' },
+              h(SectionTitle, { icon: FileText, title: 'What is now covered', text: 'The app now includes the requested loan-management workflow in an interactive no-install static deployment.' }),
+              h(
+                'div',
+                { className: 'mt-4 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-5' },
+                ['Sign-in shell', 'Organization setup', 'Company/product setup', 'Data upload and mapping', 'Configuration', 'Analytics selection', 'Execution', 'Workpaper generation', 'User management', 'GitHub Pages hosting'].map((item) =>
+                  h('div', { key: item, className: 'border border-slate-200 bg-white px-3 py-2 font-semibold' }, item),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      function StatPill({ label, value }) {
+        return h(
+          'div',
+          { className: 'border border-slate-200 px-4 py-3' },
+          h('p', { className: 'text-xs font-bold uppercase text-slate-500' }, label),
+          h('p', { className: 'mt-1 text-xl font-bold' }, value),
+        );
+      }
+
+      function SectionTitle({ icon, title, text }) {
+        const Icon = icon;
+        return h(
+          'div',
+          { className: 'flex items-start gap-3' },
+          h('span', { className: 'flex h-10 w-10 shrink-0 items-center justify-center bg-slate-950 text-white' }, h(Icon, { className: 'h-5 w-5' })),
+          h('div', null, h('h3', { className: 'text-lg font-bold' }, title), h('p', { className: 'mt-1 text-sm leading-6 text-slate-500' }, text)),
+        );
+      }
+
+      function Field({ label, value, onChange }) {
+        return h(
+          'label',
+          { className: 'block' },
+          h('span', { className: 'text-xs font-bold uppercase text-slate-500' }, label),
+          h('input', {
+            value,
+            onChange: (event) => onChange(event.target.value),
+            className: 'mt-2 w-full border border-slate-200 px-3 py-3 text-sm outline-none focus:border-slate-950',
+          }),
+        );
+      }
+
+      function NumberField({ label, value, onChange, step = '1' }) {
+        return h(
+          'label',
+          { className: 'block' },
+          h('span', { className: 'text-xs font-bold uppercase text-slate-500' }, label),
+          h('input', {
+            type: 'number',
+            value,
+            step,
+            onChange: (event) => onChange(Number(event.target.value)),
+            className: 'mt-2 w-full border border-slate-200 px-3 py-3 text-sm outline-none focus:border-slate-950',
+          }),
+        );
+      }
+
+      function WorkflowCard({ icon, title, text, items, color }) {
+        const Icon = icon;
+        return h(
+          'div',
+          { className: 'border border-slate-200 p-5' },
+          h('span', { className: 'mb-6 flex h-10 w-10 items-center justify-center rounded-full', style: { backgroundColor: color } }, h(Icon, { className: 'h-5 w-5' })),
+          h('h3', { className: 'text-lg font-bold' }, title),
+          h('p', { className: 'mt-2 text-sm leading-6 text-slate-500' }, text),
+          h('div', { className: 'mt-4 space-y-2' }, items.map((item) => h('p', { key: item, className: 'flex items-center gap-2 text-sm font-semibold' }, h(CheckCircle2, { className: 'h-4 w-4 text-emerald-600' }), item))),
+        );
+      }
+
       createRoot(document.getElementById('root')).render(h(App));
     </script>
   </body>
 </html>
+
